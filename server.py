@@ -230,20 +230,56 @@ def create_excel(reports):
     wb = Workbook()
     ws = wb.active
     ws.title = "Bug Reports"
+    
     header_fill = PatternFill(start_color="00D9FF", end_color="00D9FF", fill_type="solid")
     header_font = Font(bold=True, color="000000")
     thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+    
+    severity_colors = {
+        "critical": "FF0000",
+        "major": "FF8C00",
+        "high": "FF8C00",
+        "medium": "FFD700",
+        "minor": "FFFDD0",
+        "low": "90EE90"
+    }
+    
     headers = ["#", "Title", "Description", "Steps to Reproduce", "Expected Behavior", "Actual Behavior", "Severity", "Priority", "Environment", "Test Type", "Status"]
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col, value=header)
         cell.fill = header_fill
         cell.font = header_font
         cell.border = thin_border
+        cell.alignment = Alignment(horizontal='center')
+    
+    wrap_columns = ["Description", "Steps to Reproduce", "Expected Behavior", "Actual Behavior"]
     
     for row, report in enumerate(reports, 2):
+        severity = report.get('severity', '').lower() if report.get('severity') else ''
+        severity_fill = None
+        for key, color in severity_colors.items():
+            if key in severity:
+                severity_fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
+                break
+        
         values = [row-1] + [report.get(f, '') for f in ['title', 'description', 'steps_to_reproduce', 'expected_behavior', 'actual_behavior', 'severity', 'priority', 'environment', 'test_type', 'status']]
         for col, value in enumerate(values, 1):
-            ws.cell(row=row, column=col, value=value).border = thin_border
+            cell = ws.cell(row=row, column=col, value=value)
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
+            
+            if col == 7 and severity_fill:
+                cell.fill = severity_fill
+        
+        desc_val = report.get('description', '')
+        steps_val = report.get('steps_to_reproduce', '')
+        expected_val = report.get('expected_behavior', '')
+        actual_val = report.get('actual_behavior', '')
+        max_len = max(len(str(desc_val)), len(str(steps_val)), len(str(expected_val)), len(str(actual_val)))
+        if max_len > 50:
+            ws.row_dimensions[row].height = 80
+        elif max_len > 30:
+            ws.row_dimensions[row].height = 60
     
     ws.column_dimensions['A'].width = 6
     ws.column_dimensions['B'].width = 25
@@ -251,9 +287,18 @@ def create_excel(reports):
     ws.column_dimensions['D'].width = 30
     ws.column_dimensions['E'].width = 30
     ws.column_dimensions['F'].width = 30
+    ws.column_dimensions['G'].width = 12
+    ws.column_dimensions['H'].width = 10
+    ws.column_dimensions['I'].width = 12
+    ws.column_dimensions['J'].width = 12
+    ws.column_dimensions['K'].width = 10
+    
     return wb
 
 class Handler(BaseHTTPRequestHandler):
+    def log_message(self, format, *args):
+        print(f"{self.address_string()} - {format % args}")
+    
     def do_GET(self):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
@@ -261,30 +306,42 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(HTML.encode())
     
     def do_POST(self):
-        if self.path == '/generate':
-            length = int(self.headers['Content-Length'])
-            data = self.rfile.read(length)
-            desc = json.loads(data)['description']
-            report = generate_report(desc)
-            self.send_response(200)
+        try:
+            if self.path == '/generate':
+                length = int(self.headers['Content-Length'])
+                data = self.rfile.read(length)
+                desc = json.loads(data)['description']
+                report = generate_report(desc)
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(report).encode())
+            elif self.path == '/download-excel':
+                length = int(self.headers['Content-Length'])
+                data = self.rfile.read(length)
+                reports = json.loads(data)
+                wb = create_excel(reports)
+                import io
+                buffer = io.BytesIO()
+                wb.save(buffer)
+                buffer.seek(0)
+                self.send_response(200)
+                self.send_header('Content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                self.send_header('Content-Disposition', 'attachment; filename=bug_report.xlsx')
+                self.end_headers()
+                self.wfile.write(buffer.read())
+            else:
+                self.send_response(404)
+                self.end_headers()
+        except Exception as e:
+            print(f"ERROR: {e}")
+            import traceback
+            traceback.print_exc()
+            self.send_response(500)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps(report).encode())
-        elif self.path == '/download-excel':
-            length = int(self.headers['Content-Length'])
-            data = self.rfile.read(length)
-            reports = json.loads(data)
-            wb = create_excel(reports)
-            import io
-            buffer = io.BytesIO()
-            wb.save(buffer)
-            buffer.seek(0)
-            self.send_response(200)
-            self.send_header('Content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            self.send_header('Content-Disposition', 'attachment; filename=bug_report.xlsx')
-            self.end_headers()
-            self.wfile.write(buffer.read())
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
 
-print("Starting server at http://localhost:8002")
-server = HTTPServer(('localhost', 8002), Handler)
+print("Starting server at http://127.0.0.1:5000")
+server = HTTPServer(('127.0.0.1', 5000), Handler)
 server.serve_forever()

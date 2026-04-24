@@ -162,6 +162,21 @@ def generate_excel(report):
         bottom=Side(style='thin')
     )
     
+    severity = report['severity'].lower() if report['severity'] else ""
+    severity_colors = {
+        "critical": "FF0000",
+        "major": "FF8C00",
+        "high": "FF8C00",
+        "medium": "FFD700",
+        "minor": "FFFDD0",
+        "low": "90EE90"
+    }
+    severity_fill = None
+    for key, color in severity_colors.items():
+        if key in severity:
+            severity_fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
+            break
+    
     headers = ["Field", "Value"]
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col, value=header)
@@ -169,6 +184,8 @@ def generate_excel(report):
         cell.font = header_font
         cell.border = thin_border
         cell.alignment = Alignment(horizontal='center')
+    
+    wrap_columns = ["Steps to Reproduce", "Description", "Expected Behavior", "Actual Behavior"]
     
     report_fields = [
         ("Title", report['title']),
@@ -186,12 +203,22 @@ def generate_excel(report):
     ]
     
     for row, (field, value) in enumerate(report_fields, 2):
-        ws.cell(row=row, column=1, value=field).border = thin_border
-        ws.cell(row=row, column=2, value=value).border = thin_border
-        ws.cell(row=row, column=1).font = Font(bold=True)
+        cell1 = ws.cell(row=row, column=1, value=field)
+        cell2 = ws.cell(row=row, column=2, value=value)
+        cell1.border = thin_border
+        cell2.border = thin_border
+        cell1.font = Font(bold=True)
+        cell1.alignment = Alignment(horizontal='left', vertical='top')
+        cell2.alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
+        
+        if field == "Severity" and severity_fill:
+            cell2.fill = severity_fill
+        
+        if field in wrap_columns:
+            ws.row_dimensions[row].height = 60
     
-    ws.column_dimensions['A'].width = 25
-    ws.column_dimensions['B'].width = 60
+    for col in ['A', 'B']:
+        ws.column_dimensions[col].width = 30
     
     return wb
 
