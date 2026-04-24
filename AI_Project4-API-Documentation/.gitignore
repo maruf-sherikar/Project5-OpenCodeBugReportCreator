@@ -1,0 +1,21 @@
+# Environment variables
+.env
+
+# Python caching
+__pycache__/
+*.pyc
+
+# Project specific outputs
+output/
+temp_input_*.json
+handshake_test.txt
+normalized_input.json
+
+# Tool results that should be generated dynamically
+api_documentation.md
+openapi_spec.json
+postman_collection.json
+
+# IDEs
+.vscode/
+.idea/

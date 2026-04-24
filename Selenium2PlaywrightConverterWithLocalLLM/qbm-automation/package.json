@@ -1,0 +1,16 @@
+{
+    "name": "qbm-automation",
+    "version": "1.0.0",
+    "description": "Playwright automation framework for QBM SVKM",
+    "main": "index.js",
+    "scripts": {
+        "test": "npx playwright test",
+        "test:headed": "npx playwright test --headed",
+        "test:debug": "npx playwright test --debug",
+        "report": "npx playwright show-report"
+    },
+    "devDependencies": {
+        "@playwright/test": "^1.49.0",
+        "typescript": "^5.0.0"
+    }
+}
