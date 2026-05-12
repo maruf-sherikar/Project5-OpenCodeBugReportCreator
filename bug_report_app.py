@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, render_template_string, request, jsonify, send_file
 import os
 import json
 from datetime import datetime
@@ -17,83 +17,418 @@ HTML_TEMPLATE = '''
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Bug Report Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; padding: 40px 20px; }
-        .container { max-width: 900px; margin: 0 auto; }
-        h1 { color: #00d9ff; text-align: center; margin-bottom: 10px; font-size: 2.2rem; }
-        .subtitle { color: #888; text-align: center; margin-bottom: 30px; font-size: 0.95rem; }
-        .card { background: #1e1e2f; border-radius: 16px; padding: 35px; box-shadow: 0 25px 80px rgba(0,0,0,0.5); border: 1px solid #2a2a4a; }
-        .form-group { margin-bottom: 25px; }
-        label { display: block; margin-bottom: 10px; font-weight: 600; color: #ccc; font-size: 0.95rem; }
-        textarea { width: 100%; padding: 18px; border: 2px solid #2a2a4a; border-radius: 10px; font-size: 1rem; background: #151525; color: #fff; transition: border-color 0.3s; resize: vertical; min-height: 150px; }
-        textarea:focus { outline: none; border-color: #00d9ff; }
-        .btn { background: linear-gradient(135deg, #00d9ff 0%, #0099cc 100%); color: #000; border: none; padding: 16px 50px; border-radius: 10px; font-size: 1.1rem; font-weight: 600; cursor: pointer; transition: all 0.3s; width: 100%; margin-top: 10px; }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(0,217,255,0.3); }
-        .btn:disabled { background: #444; cursor: not-allowed; transform: none; }
-        .warning-box { background: #2a1f1f; border: 1px solid #ff6b6b; border-radius: 10px; padding: 20px; margin-top: 25px; display: none; }
+        :root {
+            --primary: #6366f1;
+            --primary-light: #818cf8;
+            --primary-dark: #4f46e5;
+            --accent: #06b6d4;
+            --accent-light: #22d3ee;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --bg-input: rgba(15, 23, 42, 0.8);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: rgba(148, 163, 184, 0.2);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-dark);
+            background-image:
+                radial-gradient(ellipse at 20% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(6, 182, 212, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 80%, rgba(16, 185, 129, 0.1) 0%, transparent 50%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-light), var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            font-weight: 300;
+        }
+
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: var(--glass-shadow);
+            border: 1px solid var(--border);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .form-group { margin-bottom: 28px; }
+
+        label {
+            display: block;
+            margin-bottom: 12px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 18px 20px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 1rem;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            resize: vertical;
+            min-height: 180px;
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.2);
+            background: rgba(15, 23, 42, 0.95);
+        }
+
+        textarea::placeholder { color: var(--text-secondary); opacity: 0.6; }
+
+        .btn {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            padding: 18px 50px;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.5px;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before { left: 100%; }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn:active { transform: translateY(0); }
+
+        .btn:disabled {
+            background: linear-gradient(135deg, #475569, #334155);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn:disabled::before { display: none; }
+
+        .warning-box {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 28px;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+
         .warning-box.show { display: block; }
-        .warning-box h3 { color: #ff6b6b; margin-bottom: 10px; font-size: 1.1rem; }
-        .warning-box p { color: #ff9999; line-height: 1.6; }
-        .result-box { background: #151525; border-radius: 10px; padding: 25px; margin-top: 25px; display: none; border: 1px solid #00d9ff; }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .warning-box h3 {
+            color: var(--danger);
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .warning-box p { color: #fca5a5; line-height: 1.7; }
+
+        .result-box {
+            background: var(--bg-input);
+            border-radius: 16px;
+            padding: 32px;
+            margin-top: 28px;
+            display: none;
+            border: 1px solid rgba(6, 182, 212, 0.3);
+            animation: slideIn 0.4s ease-out;
+        }
+
         .result-box.show { display: block; }
-        .result-box h3 { color: #00d9ff; margin-bottom: 20px; font-size: 1.2rem; }
-        .field { margin-bottom: 18px; }
-        .field-label { color: #888; font-size: 0.85rem; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .field-value { color: #fff; font-size: 1rem; line-height: 1.5; }
-        .confidence { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; margin-left: 10px; }
-        .confidence.high { background: #1a3d1a; color: #4ade80; }
-        .confidence.low { background: #3d1a1a; color: #ff6b6b; }
-        .btn-download { background: #28a745; color: white; border: none; padding: 12px 30px; border-radius: 8px; font-size: 1rem; cursor: pointer; margin-top: 20px; }
-        .btn-download:hover { background: #218838; }
-        .btn-download:disabled { background: #444; cursor: not-allowed; }
-        .spinner { display: none; width: 20px; height: 20px; border: 3px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; margin-left: 10px; }
+
+        .result-box h3 {
+            color: var(--accent-light);
+            margin-bottom: 24px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .result-box h3::before {
+            content: '✓';
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: rgba(6, 182, 212, 0.2);
+            border-radius: 50%;
+            font-size: 0.9rem;
+        }
+
+        .field {
+            margin-bottom: 22px;
+            padding-bottom: 22px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .field:last-child { border-bottom: none; }
+
+        .field-label {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .field-value {
+            color: var(--text-primary);
+            font-size: 1rem;
+            line-height: 1.7;
+            word-wrap: break-word;
+        }
+
+        .confidence {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .confidence.high {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .confidence.low {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            border: none;
+            padding: 14px 36px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 24px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-download:disabled {
+            background: linear-gradient(135deg, #475569, #334155);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
         @keyframes spin { to { transform: rotate(360deg); } }
-        .loading { display: flex; align-items: center; justify-content: center; }
-        .json-output { background: #0d0d1a; border-radius: 8px; padding: 20px; margin-top: 20px; }
-        .json-output pre { color: #00d9ff; font-family: 'Consolas', monospace; font-size: 0.9rem; overflow-x: auto; white-space: pre-wrap; }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .json-output {
+            background: rgba(15, 23, 42, 0.9);
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 28px;
+            border: 1px solid var(--border);
+        }
+
+        .json-output label {
+            text-transform: none;
+            letter-spacing: 0;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+        }
+
+        .json-output pre {
+            color: var(--accent-light);
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            line-height: 1.6;
+        }
+
+        .btn-text { display: inline-block; }
+
+        @media (max-width: 768px) {
+            body { padding: 20px 16px; }
+            h1 { font-size: 2rem; }
+            .card { padding: 24px; }
+            .btn { padding: 16px 30px; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>AI Bug Report Generator</h1>
-        <p class="subtitle">Enter a free-text bug description and get a structured bug report</p>
-        
+        <div class="header">
+            <h1>AI Bug Report Generator</h1>
+            <p class="subtitle">Transform free-text bug descriptions into structured reports instantly</p>
+        </div>
+
         <div class="card">
             <form id="bugForm">
                 <div class="form-group">
-                    <label>Bug Description (Free Text) *</label>
-                    <textarea name="description" id="description" required placeholder="Describe the bug in your own words. Include what happened, where it happened, and any details you noticed...
+                    <label for="description">Bug Description *</label>
+                    <textarea
+                        name="description"
+                        id="description"
+                        required
+                        placeholder="Describe the bug in your own words...
 
-Example: When I try to login with invalid credentials, the error message is not displayed properly. The page just reloads without showing any feedback to the user."></textarea>
+Example: When I try to login with invalid credentials, the error message is not displayed properly. The page just reloads without showing any feedback to the user."
+                    ></textarea>
                 </div>
-                
+
                 <button type="submit" class="btn" id="generateBtn">
-                    <span id="btnText">Generate Bug Report</span>
+                    <span class="btn-text" id="btnText">Generate Bug Report</span>
                     <div class="spinner" id="spinner"></div>
                 </button>
             </form>
-            
+
             <div class="warning-box" id="warningBox">
                 <h3>⚠️ Need More Information</h3>
                 <p id="warningMessage"></p>
             </div>
-            
+
             <div class="result-box" id="resultBox">
                 <h3>Generated Bug Report</h3>
                 <div id="reportContent"></div>
-                <button class="btn-download" id="downloadBtn" onclick="downloadExcel()">Download Excel</button>
+                <button class="btn-download" id="downloadBtn" onclick="downloadExcel()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Download Excel
+                </button>
                 <div class="json-output">
-                    <label>JSON Output:</label>
+                    <label>JSON Output</label>
                     <pre id="jsonOutput"></pre>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <script>
         let currentReport = null;
-        
+
         const form = document.getElementById('bugForm');
         const generateBtn = document.getElementById('generateBtn');
         const btnText = document.getElementById('btnText');
@@ -104,44 +439,44 @@ Example: When I try to login with invalid credentials, the error message is not 
         const reportContent = document.getElementById('reportContent');
         const jsonOutput = document.getElementById('jsonOutput');
         const downloadBtn = document.getElementById('downloadBtn');
-        
+
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const description = document.getElementById('description').value.trim();
             if (!description) {
                 alert('Please enter a bug description');
                 return;
             }
-            
+
             generateBtn.disabled = true;
             btnText.textContent = 'Processing...';
             spinner.style.display = 'inline-block';
             warningBox.classList.remove('show');
             resultBox.classList.remove('show');
-            
+
             try {
                 const response = await fetch('/generate', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ description })
                 });
-                
+
                 const data = await response.json();
-                
+
                 spinner.style.display = 'none';
                 btnText.textContent = 'Generate Bug Report';
                 generateBtn.disabled = false;
-                
+
                 if (data.needs_clarification) {
                     warningBox.classList.add('show');
                     warningMessage.textContent = data.message;
                     return;
                 }
-                
+
                 currentReport = data.report;
                 displayReport(data.report);
-                
+
             } catch (error) {
                 spinner.style.display = 'none';
                 btnText.textContent = 'Generate Bug Report';
@@ -149,10 +484,10 @@ Example: When I try to login with invalid credentials, the error message is not 
                 alert('Error: ' + error.message);
             }
         });
-        
+
         function displayReport(report) {
             const confidenceClass = report.confidence >= 80 ? 'high' : 'low';
-            
+
             reportContent.innerHTML = `
                 <div class="field">
                     <div class="field-label">Bug Title</div>
@@ -199,21 +534,21 @@ Example: When I try to login with invalid credentials, the error message is not 
                     <div class="field-value">${report.confidence}%</div>
                 </div>
             `;
-            
+
             jsonOutput.textContent = JSON.stringify(report, null, 2);
             resultBox.classList.add('show');
         }
-        
+
         async function downloadExcel() {
             if (!currentReport) return;
-            
+
             try {
                 const response = await fetch('/download-excel', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify(currentReport)
                 });
-                
+
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
