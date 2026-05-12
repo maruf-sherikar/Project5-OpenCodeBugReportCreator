@@ -1,0 +1,75 @@
+{
+  "api_name": "Sample Generic API",
+  "base_url": "https://api.sample.com",
+  "endpoints": [
+    {
+      "path": "/items",
+      "method": "GET",
+      "headers": {
+        "Authorization": "Bearer <token>"
+      },
+      "query_params": {
+        "page": "number",
+        "limit": "number",
+        "search": "string"
+      },
+      "request_body": {},
+      "response": {
+        "data": [
+          {
+            "id": "number",
+            "name": "string",
+            "created_at": "string"
+          }
+        ],
+        "total": "number"
+      },
+      "status_codes": [
+        200,
+        400,
+        401,
+        500
+      ]
+    },
+    {
+      "path": "/items/{id}",
+      "method": "GET",
+      "headers": {
+        "Authorization": "Bearer <token>"
+      },
+      "query_params": {},
+      "request_body": {},
+      "response": {
+        "id": "number",
+        "name": "string",
+        "description": "string"
+      },
+      "status_codes": [
+        200,
+        404,
+        500
+      ]
+    },
+    {
+      "path": "/items",
+      "method": "POST",
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "query_params": {},
+      "request_body": {
+        "name": "string",
+        "description": "string"
+      },
+      "response": {
+        "id": "number",
+        "name": "string"
+      },
+      "status_codes": [
+        201,
+        400,
+        422
+      ]
+    }
+  ]
+}

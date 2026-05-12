@@ -2,6 +2,8 @@ import datetime
 import json
 import os
 import sys
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 def get_input(prompt, required=True, multiline=False):
     while True:
@@ -146,6 +148,80 @@ Attachments/Notes:
 """
     return text
 
+def generate_excel(report):
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Bug Report"
+    
+    header_fill = PatternFill(start_color="667EEA", end_color="667EEA", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    thin_border = Border(
+        left=Side(style='thin'),
+        right=Side(style='thin'),
+        top=Side(style='thin'),
+        bottom=Side(style='thin')
+    )
+    
+    severity = report['severity'].lower() if report['severity'] else ""
+    severity_colors = {
+        "critical": "FF0000",
+        "major": "FF8C00",
+        "high": "FF8C00",
+        "medium": "FFD700",
+        "minor": "FFFDD0",
+        "low": "90EE90"
+    }
+    severity_fill = None
+    for key, color in severity_colors.items():
+        if key in severity:
+            severity_fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
+            break
+    
+    headers = ["Field", "Value"]
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.border = thin_border
+        cell.alignment = Alignment(horizontal='center')
+    
+    wrap_columns = ["Steps to Reproduce", "Description", "Expected Behavior", "Actual Behavior"]
+    
+    report_fields = [
+        ("Title", report['title']),
+        ("Created", report['created_at']),
+        ("Reporter", report['reporter'] or 'N/A'),
+        ("Severity", report['severity']),
+        ("Priority", report['priority']),
+        ("Environment", report['environment'] or 'N/A'),
+        ("Assignee", report['assignee'] or 'Unassigned'),
+        ("Description", report['description']),
+        ("Steps to Reproduce", report['steps_to_reproduce']),
+        ("Expected Behavior", report['expected_behavior']),
+        ("Actual Behavior", report['actual_behavior']),
+        ("Attachments/Notes", report['attachments'] or 'None'),
+    ]
+    
+    for row, (field, value) in enumerate(report_fields, 2):
+        cell1 = ws.cell(row=row, column=1, value=field)
+        cell2 = ws.cell(row=row, column=2, value=value)
+        cell1.border = thin_border
+        cell2.border = thin_border
+        cell1.font = Font(bold=True)
+        cell1.alignment = Alignment(horizontal='left', vertical='top')
+        cell2.alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
+        
+        if field == "Severity" and severity_fill:
+            cell2.fill = severity_fill
+        
+        if field in wrap_columns:
+            ws.row_dimensions[row].height = 60
+    
+    for col in ['A', 'B']:
+        ws.column_dimensions[col].width = 30
+    
+    return wb
+
 def main():
     while True:
         report = create_bug_report()
@@ -155,35 +231,42 @@ def main():
         print("1. Markdown (.md)")
         print("2. Plain Text (.txt)")
         print("3. JSON (.json)")
-        print("4. Save all formats")
-        print("5. Create new report")
-        print("6. Exit")
+        print("4. Excel (.xlsx)")
+        print("5. Save all formats")
+        print("6. Create new report")
+        print("7. Exit")
         print("=" * 50)
         
-        choice = input("Enter choice (1-6): ").strip()
+        choice = input("Enter choice (1-7): ").strip()
         
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_title = "".join(c for c in report['title'] if c.isalnum() or c in " -_").strip()[:30]
         
-        if choice in ["1", "4"]:
+        if choice in ["1", "5"]:
             md_content = generate_markdown(report)
             filename = f"bug_report_{safe_title}_{timestamp}.md"
             with open(filename, "w") as f:
                 f.write(md_content)
             print(f"\nSaved: {filename}")
         
-        if choice in ["2", "4"]:
+        if choice in ["2", "5"]:
             txt_content = generate_text(report)
             filename = f"bug_report_{safe_title}_{timestamp}.txt"
             with open(filename, "w") as f:
                 f.write(txt_content)
             print(f"Saved: {filename}")
         
-        if choice in ["3", "4"]:
+        if choice in ["3", "5"]:
             json_content = json.dumps(report, indent=2)
             filename = f"bug_report_{safe_title}_{timestamp}.json"
             with open(filename, "w") as f:
                 f.write(json_content)
+            print(f"Saved: {filename}")
+        
+        if choice in ["4", "5"]:
+            wb = generate_excel(report)
+            filename = f"bug_report_{safe_title}_{timestamp}.xlsx"
+            wb.save(filename)
             print(f"Saved: {filename}")
         
         if choice == "1":
@@ -198,17 +281,21 @@ def main():
             print("\n--- JSON Preview ---")
             print(json.dumps(report, indent=2))
         
-        if choice == "5":
+        if choice == "4":
+            print("\n--- Excel file saved ---")
+            print(f"bug_report_{safe_title}_{timestamp}.xlsx")
+        
+        if choice == "6":
             print("\n" + "=" * 50)
             print("Creating new report...")
             print("=" * 50)
             continue
         
-        if choice == "6":
+        if choice == "7":
             print("Goodbye!")
             break
         
-        if choice not in ["1", "2", "3", "4"]:
+        if choice not in ["1", "2", "3", "4", "5"]:
             print("Invalid choice.")
             break
         
