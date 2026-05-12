@@ -1,0 +1,19 @@
+127.0.0.1 - - [24/Apr/2026 15:03:17] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:03:17] "GET /favicon.ico HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:03:27] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:03:28] "GET /favicon.ico HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:03:33] "POST /generate HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:03:40] "POST /download-excel HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:06:44] "POST /generate HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:07:54] "POST /generate HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:08:03] "POST /download-excel HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:35:30] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:35:31] "GET /favicon.ico HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:35:42] "POST /generate HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:35:48] "POST /download-excel HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:40:40] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:40:40] "GET /favicon.ico HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:40:53] "POST /generate HTTP/1.1" 200 -
+127.0.0.1 - - [24/Apr/2026 15:40:58] "POST /download-excel HTTP/1.1" 200 -
+C:\Users\Maruf.sherikar.EXT.SVKMGRP\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'C:\\Users\\Maruf.sherikar.EXT.SVKMGRP\\Downloads\\AI Testing\\learn-testing-with-ai\\Project5-OpenCodeBugReportCreator\\server.py': [Errno 2] No such file or directory
+C:\Users\Maruf.sherikar.EXT.SVKMGRP\AppData\Local\Python\pythoncore-3.14-64\python.exe: can't open file 'C:\\Users\\Maruf.sherikar.EXT.SVKMGRP\\Downloads\\AI Testing\\learn-testing-with-ai\\Project5-OpenCodeBugReportCreator\\server.py': [Errno 2] No such file or directory
